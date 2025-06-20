@@ -1,48 +1,52 @@
-'use client'; 
-
-import Link from 'next/link';
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { useSession, signIn, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function Navbar() {
-    const { data: session, status } = useSession();
+  const { data: session } = useSession();
+  const router = useRouter();
 
   return (
-    <nav className="p-4 bg-gray-900 text-white flex justify-between items-center">
-      <div className="text-xl font-bold">Student Hub</div>
-
-      <div>
-        {status === 'loading' && (
-          <span>Loading...</span>
-        )}
-
-        {status === 'authenticated' && (
-          <div className="flex items-center gap-2">
-            {session.user.image && (
-              <img 
-                src={session.user.image} 
-                alt="profile" 
-                className="w-8 h-8 rounded-full"
-              />
-            )}
-            <span>{session.user.name}</span>
-            <button 
-              onClick={() => signOut()} 
-              className="ml-2 bg-red-500 hover:bg-red-600 px-2 py-1 rounded"
+    <nav className="bg-[#001F3F] text-white shadow-md">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-3">
+        <Link href="/" className="text-2xl font-bold text-yellow-400">
+          Konnect
+        </Link>
+        {session ? (
+          <div className="flex items-center gap-4">
+            <div className="relative group">
+              <span className="cursor-pointer">Communities</span>
+              <div className="absolute hidden group-hover:block bg-white text-black rounded shadow-lg mt-2">
+                <Link href="/community/cse" className="block px-4 py-2 hover:bg-gray-100">CSE</Link>
+                <Link href="/community/ece" className="block px-4 py-2 hover:bg-gray-100">ECE</Link>
+                <Link href="/community/mech" className="block px-4 py-2 hover:bg-gray-100">Mech</Link>
+                {/* Add more branches here */}
+              </div>
+            </div>
+            <Link href="/internships">Internships</Link>
+            <Link href="/resources">Resources</Link>
+            <Link href="/hackathons">Hackathons</Link>
+            <Button
+              variant="outline"
+              className="border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-[#001F3F]"
+              onClick={() => signOut()}
             >
-              Logout
-            </button>
+              Sign Out
+            </Button>
           </div>
-        )}
-
-        {status === 'unauthenticated' && (
-          <button 
-            onClick={() => signIn()} 
-            className="bg-green-500 hover:bg-green-600 px-2 py-1 rounded"
-          >
-            Login
-          </button>
+        ) : (
+          <div className="flex items-center gap-4">
+            <Link href="/signin">Sign In</Link>
+            <Button
+              className="bg-yellow-400 text-[#001F3F] hover:bg-yellow-500"
+              onClick={() => router.push("/signup")}
+            >
+              GET STARTED
+            </Button>
+          </div>
         )}
       </div>
     </nav>
-  )
+  );
 }

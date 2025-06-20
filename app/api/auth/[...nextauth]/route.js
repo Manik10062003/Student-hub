@@ -1,39 +1,39 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import GitHubProvider from "next-auth/providers/github";
-import EmailProvider from 'next-auth/providers/email';
-import clientPromise from "@/lib/mongodb";
-import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { connectDB } from "@/lib/mongodb";
+import User from "@/models/User";
+import bcrypt from "bcryptjs";
 
-const handler = NextAuth({
-    adapter: MongoDBAdapter(clientPromise),
+export const authOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET
     }),
-    GitHubProvider({
-      clientId: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    }),
-    EmailProvider({
-      server: {
-        host: process.env.EMAIL_SERVER_HOST,
-        port: process.env.EMAIL_SERVER_PORT,
-        auth: {
-          user: process.env.EMAIL_SERVER_USER,
-          pass: process.env.EMAIL_SERVER_PASSWORD,
-        },
+    CredentialsProvider({
+      name: "Email + Password",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
       },
-      from: process.env.EMAIL_FROM,
-    }),
+      async authorize(credentials) {
+        await connectDB();
+        const user = await User.findOne({ email: credentials.email });
+        if (!user || !user.verified) {
+          throw new Error("No verified user found with this email");
+        }
+        const isMatch = await bcrypt.compare(credentials.password, user.password);
+        if (!isMatch) {
+          throw new Error("Invalid credentials");
+        }
+        return { id: user._id, email: user.email, name: `${user.firstName} ${user.lastName}` };
+      }
+    })
   ],
-  callbacks: {
-    async session({ session, token, user }) {
-      // Attach additional data to session if needed
-      return session;
-    },
-  },
-});
+  session: { strategy: "jwt" },
+  secret: process.env.NEXTAUTH_SECRET
+};
 
+const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
