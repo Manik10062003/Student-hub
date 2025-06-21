@@ -11,6 +11,10 @@ const UserSchema = new mongoose.Schema({
   password: String, // hash this!
   verified: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
+  joinedCommunities: {
+    type: [String],
+    default: [],
+  },
 });
 
 export default mongoose.models.User || mongoose.model("User", UserSchema);

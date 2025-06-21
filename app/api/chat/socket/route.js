@@ -14,9 +14,10 @@ export async function GET(req) {
     io.on("connection", (socket) => {
       console.log("User connected:", socket.id);
 
-      socket.on("message", (msg) => {
-        io.emit("message", msg);
-      });
+      socket.on("message", async (msg) => {
+  io.to(msg.community).emit("message", msg);
+  await Message.create(msg); // Save to DB
+});
 
       socket.on("disconnect", () => {
         console.log("User disconnected:", socket.id);
@@ -26,3 +27,4 @@ export async function GET(req) {
 
   return new Response("Socket initialized", { status: 200 });
 }
+2

@@ -1,46 +1,67 @@
 "use client";
-import { useEffect, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { getSocket } from "@/lib/socket";
-import Filter from "bad-words";
+import { useEffect, useState, useRef } from "react";
+import io from "socket.io-client";
 
-export default function ChatBox() {
+let socket;
+
+export default function ChatBox({ slug, email }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  const socket = getSocket();
-  const filter = new Filter();
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
+    socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001");
+
+    socket.emit("joinRoom", { room: slug, email });
+
     socket.on("message", (msg) => {
       setMessages((prev) => [...prev, msg]);
     });
-    return () => socket.off("message");
-  }, [socket]);
+    
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [slug, email]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+  
 
   const sendMessage = () => {
-    if (!input.trim()) return;
-    const cleanMsg = filter.clean(input);
-    socket.emit("message", cleanMsg);
-    setInput("");
+    if (input.trim()) {
+      socket.emit("chatMessage", { room: slug, email, text: input });
+      setInput("");
+    }
   };
 
   return (
-    <div className="flex flex-col h-full bg-white rounded shadow p-4">
+    <div className="border rounded-lg p-4 bg-white shadow max-h-[500px] flex flex-col">
       <div className="flex-1 overflow-y-auto space-y-2 mb-2">
-        {messages.map((m, i) => (
-          <div key={i} className="bg-gray-100 rounded p-2">
-            {m}
+        {messages.map((msg, idx) => (
+          <div key={idx} className={`p-2 rounded ${msg.email === email ? "bg-yellow-100 text-right" : "bg-gray-100 text-left"}`}>
+            <small className="block text-xs text-gray-500">{msg.email}</small>
+            <span>{msg.text}</span>
           </div>
         ))}
+        <div ref={messagesEndRef}></div>
       </div>
+
       <div className="flex gap-2">
-        <Input
+        <input
+          className="flex-1 border rounded p-2"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message"
+          placeholder="Type your message..."
+          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
         />
-        <Button onClick={sendMessage}>Send</Button>
+        <button
+          onClick={sendMessage}
+          className="bg-yellow-400 text-[#001F3F] px-4 rounded hover:bg-yellow-500"
+        >
+          Send
+        </button>
       </div>
     </div>
   );
