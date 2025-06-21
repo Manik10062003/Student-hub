@@ -12,6 +12,7 @@ export async function POST(req) {
     } = body;
 
     await connectDB();
+    console.log("Connected to MongoDB");
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -25,6 +26,7 @@ export async function POST(req) {
     });
 
     await user.save();
+    console.log("User saved to database");
 
     // Send verification email
     const transporter = nodemailer.createTransport({
